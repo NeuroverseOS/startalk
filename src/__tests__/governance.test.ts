@@ -4,6 +4,7 @@ import {
   gateAdjustments,
   evaluateTrustFromMetrics,
   stripModeTag,
+  validateCoreInvariant,
   WORDS_DEPTH,
   WORDS_GLANCE,
 } from '../governance.js';
@@ -140,6 +141,141 @@ describe('evaluateTrustFromMetrics', () => {
       trust = evaluateTrustFromMetrics(trust, metrics);
     }
     expect(trustToGate(trust)).toBe('REVOKED');
+  });
+});
+
+// ─── Core Invariant: Symbolic Interpretation, Never Tactical ─────────────────
+
+describe('validateCoreInvariant', () => {
+  // ── VALID: symbolic interpretation ──────────────────────────────────────
+
+  it('valid: astrological read with sign reference', () => {
+    const result = validateCoreInvariant(
+      "That's classic Aries energy — they charged ahead because waiting feels like dying to a fire sign."
+    );
+    expect(result.valid).toBe(true);
+    expect(result.hasSymbolic).toBe(true);
+    expect(result.hasTactical).toBe(false);
+  });
+
+  it('valid: mode translate with compatibility', () => {
+    const result = validateCoreInvariant(
+      "Your Cancer instinct is to protect, but their Sagittarius nature needs room to run. Water meets fire."
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it('valid: challenge mode with shadow trait', () => {
+    const result = validateCoreInvariant(
+      "You're retreating into your Scorpio shadow right now. That silence isn't protecting you — it's a wall."
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it('valid: teach mode explaining dynamic', () => {
+    const result = validateCoreInvariant(
+      "Cardinal signs like Aries and Cancer both want to lead, but through different elements — fire charges, water flows."
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  it('valid: reflect mode with planetary reference', () => {
+    const result = validateCoreInvariant(
+      "Mars energy is driving you hard today. Where is that urgency actually coming from?"
+    );
+    expect(result.valid).toBe(true);
+  });
+
+  // ── INVALID: tactical advice (no symbolic framing) ─────────────────────
+
+  it('invalid: tactical advice without symbolic framing', () => {
+    const result = validateCoreInvariant(
+      "You should call your manager tomorrow morning and ask for a raise."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+    expect(result.hasSymbolic).toBe(false);
+  });
+
+  it('invalid: step-by-step plan', () => {
+    const result = validateCoreInvariant(
+      "Step 1: Open the conversation. Step 2: State your needs clearly."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+  });
+
+  it('invalid: action items', () => {
+    const result = validateCoreInvariant(
+      "Action items: send the email, book the meeting, update your resume."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+  });
+
+  it('invalid: here is a plan', () => {
+    const result = validateCoreInvariant(
+      "Here's a plan for your conversation with your boss this afternoon."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+  });
+
+  it('invalid: concrete recommendation', () => {
+    const result = validateCoreInvariant(
+      "My recommendation is to quit and find a new job before the end of the month."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+  });
+
+  // ── INVALID: tactical even WITH symbolic framing ───────────────────────
+
+  it('invalid: tactical wrapped in astrology still fails', () => {
+    const result = validateCoreInvariant(
+      "As a Taurus, you should buy that house. Your earth sign energy makes it the right investment."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+    expect(result.hasSymbolic).toBe(true);
+    expect(result.tacticalMatches.length).toBeGreaterThan(0);
+  });
+
+  it('invalid: step-by-step plan with astrological garnish', () => {
+    const result = validateCoreInvariant(
+      "Your Capricorn discipline is perfect for this. Step 1: update LinkedIn. Step 2: reach out to recruiters."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasTactical).toBe(true);
+    expect(result.hasSymbolic).toBe(true);
+  });
+
+  // ── INVALID: no symbolic framing at all ────────────────────────────────
+
+  it('invalid: generic response with no astrological content', () => {
+    const result = validateCoreInvariant(
+      "That sounds like a tough situation. Maybe just give it some time."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasSymbolic).toBe(false);
+  });
+
+  it('invalid: therapy-speak with no symbolic lens', () => {
+    const result = validateCoreInvariant(
+      "It's important to set boundaries and communicate your needs clearly."
+    );
+    expect(result.valid).toBe(false);
+    expect(result.hasSymbolic).toBe(false);
+  });
+
+  // ── tacticalMatches reports what triggered ──────────────────────────────
+
+  it('tacticalMatches lists the offending phrases', () => {
+    const result = validateCoreInvariant(
+      "You should call your boss and I suggest you apply for that role."
+    );
+    expect(result.tacticalMatches.map(m => m.toLowerCase())).toContain('you should call');
+    expect(result.tacticalMatches.length).toBeGreaterThanOrEqual(1);
   });
 });
 

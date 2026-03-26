@@ -80,6 +80,76 @@ export function evaluateTrustFromMetrics(
   return Math.max(0, Math.min(100, trust));
 }
 
+// ─── Core Invariant ──────────────────────────────────────────────────────────
+//
+// StarTalk MUST always interpret meaning through symbolic systems (astrology).
+// StarTalk MUST NEVER output tactical advice (do X, buy Y, go to Z).
+//
+// This is the product boundary. StarTalk is a translator, not a coach.
+// Every response should read the moment through the user's chart — not tell
+// them what to do in concrete, non-symbolic terms.
+
+/**
+ * Tactical advice patterns — phrases that indicate the response has crossed
+ * from symbolic interpretation into concrete life coaching / directives.
+ *
+ * These are NOT astrological. They're actionable instructions that belong
+ * in a productivity app, not a cosmic translator.
+ */
+const TACTICAL_PATTERNS: RegExp[] = [
+  /\byou should (?:go|buy|sell|call|email|text|apply|invest|quit|hire|fire|move to|sign up)\b/i,
+  /\bI (?:recommend|suggest|advise) (?:you )?(go|buy|sell|call|email|text|apply|invest|quit)\b/i,
+  /\bstep \d+[:.]/i,
+  /\bhere(?:'s| is) (?:a |your |the )?(?:plan|strategy|checklist|action item|to-do|roadmap)\b/i,
+  /\baction items?:/i,
+  /\bmy (?:recommendation|advice) is to\b/i,
+];
+
+/**
+ * Symbolic framing patterns — phrases that indicate the response IS
+ * interpreting through an astrological / symbolic lens.
+ */
+const SYMBOLIC_PATTERNS: RegExp[] = [
+  /\b(?:aries|taurus|gemini|cancer|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces)\b/i,
+  /\b(?:fire|earth|air|water)\s+sign\b/i,
+  /\b(?:cardinal|fixed|mutable)\b/i,
+  /\b(?:sun|moon|rising|mercury|venus|mars|jupiter|saturn)\b/i,
+  /\b(?:energy|instinct|shadow|trait|nature|chart|cosmic|star)\b/i,
+];
+
+export interface InvariantResult {
+  valid: boolean;
+  hasTactical: boolean;
+  hasSymbolic: boolean;
+  tacticalMatches: string[];
+}
+
+/**
+ * Validate the core StarTalk invariant:
+ *   - Must interpret through symbolic systems (astrology)
+ *   - Must never output tactical advice
+ *
+ * Returns { valid: true } if the response is symbolic and not tactical.
+ * Returns { valid: false } with details if either invariant is violated.
+ */
+export function validateCoreInvariant(text: string): InvariantResult {
+  const tacticalMatches: string[] = [];
+  for (const pattern of TACTICAL_PATTERNS) {
+    const match = text.match(pattern);
+    if (match) tacticalMatches.push(match[0]);
+  }
+
+  const hasSymbolic = SYMBOLIC_PATTERNS.some(p => p.test(text));
+  const hasTactical = tacticalMatches.length > 0;
+
+  return {
+    valid: hasSymbolic && !hasTactical,
+    hasTactical,
+    hasSymbolic,
+    tacticalMatches,
+  };
+}
+
 // ─── Mode Tag Parsing ─────────────────────────────────────────────────────────
 
 /**
