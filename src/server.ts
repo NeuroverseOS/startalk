@@ -46,7 +46,7 @@ import {
   buildStarTalkPrompt,
   type SignId,
   type UserProfile,
-} from './sign-loader';
+} from './sign-loader.js';
 
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
