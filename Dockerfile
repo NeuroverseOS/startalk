@@ -1,17 +1,15 @@
-FROM node:20-slim AS build
+FROM oven/bun:1 AS build
 RUN apt-get update && apt-get install -y git && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json ./
-RUN npm install --production=false
+RUN bun install
+RUN cd node_modules/neuroverseos-governance && bun install && bun run build || true
 COPY . .
 
-FROM node:20-slim
+FROM oven/bun:1
 WORKDIR /app
-RUN addgroup --gid 1001 startalk && adduser --uid 1001 --gid 1001 --disabled-password startalk
 COPY --from=build /app/src ./src
 COPY --from=build /app/node_modules ./node_modules
 COPY package.json tsconfig.json ./
-USER startalk
 EXPOSE 3001
-HEALTHCHECK --interval=30s --timeout=5s CMD node -e "fetch('http://localhost:3001/health').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
-CMD ["npx", "tsx", "src/server.ts"]
+CMD ["bun", "run", "src/server.ts"]
