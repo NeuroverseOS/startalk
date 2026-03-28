@@ -855,12 +855,58 @@ class StarTalkApp extends AppServer {
 
 // ─── Start ───────────────────────────────────────────────────────────────────
 
+const port = Number(process.env.PORT) || 3001;
+
 const app = new StarTalkApp({
   packageName: APP_ID,
   apiKey: process.env.MENTRA_APP_API_KEY ?? '',
-  port: Number(process.env.PORT) || 3001,
+  port,
 });
 
-app.start();
-console.log(`[StarTalk] Running on port ${Number(process.env.PORT) || 3001}`);
+// ── Webview route (MentraOS loads /webview when user taps app on phone) ───
+app.get('/webview', (c: any) => {
+  return c.html(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StarTalk</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { text-align: center; padding: 2rem; max-width: 400px; }
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; background: linear-gradient(135deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: #888; font-size: 0.9rem; margin-bottom: 2rem; }
+    .instructions { text-align: left; background: #111128; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; }
+    .instructions p { margin-bottom: 0.75rem; font-size: 0.85rem; line-height: 1.5; color: #ccc; }
+    .instructions strong { color: #a78bfa; }
+    .footer { color: #555; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>StarTalk</h1>
+    <p class="subtitle">Cosmic perspective for your glasses</p>
+    <div class="instructions">
+      <p><strong>Tap</strong> your glasses to get a star read.</p>
+      <p><strong>Tap again</strong> within 30s to go deeper.</p>
+      <p><strong>Long press</strong> to dismiss a bad read.</p>
+      <p>Say <strong>"Sophie is a Cancer"</strong> to remember people.</p>
+      <p>Say <strong>"talking to Sophie"</strong> to translate for them.</p>
+    </div>
+    <p class="footer">Set your signs and API key in Settings.</p>
+  </div>
+</body>
+</html>`);
+});
+
+await app.start();
+
+Bun.serve({
+  port,
+  hostname: '0.0.0.0',
+  fetch: app.fetch,
+});
+
+console.log(`[StarTalk] Running on port ${port}`);
 console.log(`[StarTalk] Signs: ${ALL_SIGNS.map(s => s.name).join(', ')}`);
